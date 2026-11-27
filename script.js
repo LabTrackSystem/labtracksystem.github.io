@@ -1023,7 +1023,11 @@ return items.map(item => `
  `).join("");
 }
 
+function getCategoryBackground(category) {
+  const filename = category.toLowerCase().replace(/\s+/g, "-");
 
+  return `images/${filename}.jpg`;
+}
 
 function renderInventoryTable(showTitle = true) {
   return `
@@ -1079,10 +1083,11 @@ function renderInventoryTable(showTitle = true) {
                 return `
                   ${isNewCategory ? `
                     <tr class="category-group-row">
-                      <td colspan="15">
-                        <strong>${escapeHTML(category)}</strong>
-                      </td>
-                    </tr>
+  <td colspan="15"
+      style="background-image: url('${getCategoryBackground(category)}')">
+    <strong>${escapeHTML(category)}</strong>
+  </td>
+</tr>
                   ` : ""}
 
                   <tr>
