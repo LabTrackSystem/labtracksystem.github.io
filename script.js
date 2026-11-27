@@ -430,8 +430,6 @@ function showAddApparatusForm() {
           <label>Symbol / Emoji</label>
           <input type="text" id="newApparatusSymbol"
             placeholder="Example: 🧪">
-
-            const imagePath = document.getElementById("newApparatusImage").value.trim();
             
 <label>Apparatus Image Path</label>
 <input
@@ -3083,6 +3081,7 @@ renderApp();
 
 document.addEventListener("submit", async event => {
   if (event.target.id === "addApparatusForm") {
+    event.preventDefault();
     await saveNewApparatus(event);
   }
 });
