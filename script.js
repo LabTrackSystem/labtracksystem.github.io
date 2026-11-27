@@ -333,7 +333,16 @@ modalRoot._confirmAction = null;
 }
 
 
+
 function showAddApparatusForm() {
+  const existingCategories = [
+    ...new Set(
+      data.items
+        .map(item => (item.category || "").trim())
+        .filter(Boolean)
+    )
+  ].sort((a, b) => a.localeCompare(b));
+
   modalRoot.innerHTML = `
     <div class="modal-backdrop">
       <section class="modal-card"
@@ -356,8 +365,24 @@ function showAddApparatusForm() {
             placeholder="Enter apparatus name" required>
 
           <label>Category</label>
-          <input type="text" id="newApparatusCategory"
-            placeholder="Example: Glassware" required>
+          <select id="newApparatusCategory" required>
+            <option value="" disabled selected>Select a category</option>
+
+            ${existingCategories.map(category => `
+              <option value="${escapeHTML(category)}">
+                ${escapeHTML(category)}
+              </option>
+            `).join("")}
+
+            <option value="__new__">+ Add New Category</option>
+          </select>
+
+          <input
+            type="text"
+            id="newApparatusCustomCategory"
+            placeholder="Enter new category name"
+            style="display:none; margin-top:10px"
+          >
 
           <label>Subject</label>
           <select id="newApparatusSubject" required>
@@ -379,6 +404,15 @@ function showAddApparatusForm() {
           <label>Symbol / Emoji</label>
           <input type="text" id="newApparatusSymbol"
             placeholder="Example: 🧪">
+
+            const imagePath = document.getElementById("newApparatusImage").value.trim();
+            
+<label>Apparatus Image Path</label>
+<input
+  type="text"
+  id="newApparatusImage"
+  placeholder="images/apparatus/testtube.jpg"
+>
 
           <label>Description</label>
           <textarea id="newApparatusDescription"
@@ -417,6 +451,7 @@ function showAddApparatusForm() {
 }
 
 
+
 async function saveNewApparatus(event) {
   event.preventDefault();
 
@@ -427,7 +462,15 @@ async function saveNewApparatus(event) {
 
   const id = document.getElementById("newApparatusId").value.trim().toUpperCase();
   const name = document.getElementById("newApparatusName").value.trim();
-  const category = document.getElementById("newApparatusCategory").value.trim();
+  const categorySelect = document.getElementById("newApparatusCategory");
+
+const customCategoryInput = document.getElementById(
+  "newApparatusCustomCategory"
+);
+
+const category = categorySelect.value === "__new__"
+  ? customCategoryInput.value.trim()
+  : categorySelect.value.trim();
   const subject = document.getElementById("newApparatusSubject").value;
   const location = document.getElementById("newApparatusLocation").value.trim();
   const totalInput = document.getElementById("newApparatusTotal");
@@ -445,10 +488,17 @@ async function saveNewApparatus(event) {
     .map(value => value.trim())
     .filter(Boolean);
 
-  if (!id || !name || !category || !location || !description) {
-    showToast("Please complete all required fields.");
-    return;
-  }
+ if (
+  !id ||
+  !name ||
+  !category ||
+  !location ||
+  !description ||
+  (categorySelect.value === "__new__" && !category)
+) {
+  showToast("Please complete all required fields.");
+  return;
+}
 
   if (!/^[A-Z0-9_-]+$/.test(id)) {
     showToast("Use only letters, numbers, hyphens, or underscores for the ID.");
@@ -492,6 +542,7 @@ async function saveNewApparatus(event) {
       enabled: true,
       conditionCounts,
       symbol,
+      image: imagePath,
       description,
       uses,
       safety,
@@ -2072,7 +2123,23 @@ return `
      </section>
 
      <section class="panel guide-detail">
-       <div class="apparatus-symbol">${escapeHTML(selected.symbol || "⚗")}</div>
+       ${selected.image ? `
+  <div class="apparatus-photo-wrap">
+    <img
+      src="${escapeHTML(selected.image)}"
+      alt="${escapeHTML(selected.name)}"
+      class="apparatus-photo"
+      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+    >
+    <div class="apparatus-symbol" style="display:none">
+      ${escapeHTML(selected.symbol || "⚗")}
+    </div>
+  </div>
+` : `
+  <div class="apparatus-symbol">
+    ${escapeHTML(selected.symbol || "⚗")}
+  </div>
+`}
        <span class="apparatus-id">${escapeHTML(selected.id)}</span>
        <h2>${escapeHTML(selected.name)}</h2>
        <p>${escapeHTML(selected.description)}</p>
@@ -2613,6 +2680,25 @@ renderApp();
 }
 });
 
+
+document.addEventListener("change", event => {
+  if (event.target.id !== "newApparatusCategory") return;
+
+  const customCategory = document.getElementById(
+    "newApparatusCustomCategory"
+  );
+
+  if (!customCategory) return;
+
+  const isNew = event.target.value === "__new__";
+
+  customCategory.style.display = isNew ? "block" : "none";
+  customCategory.required = isNew;
+
+  if (!isNew) {
+    customCategory.value = "";
+  }
+});
 
 document.addEventListener("click", async event => {
 const button = event.target.closest("[data-action]");
