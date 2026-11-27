@@ -34,6 +34,12 @@ addDoc
 const STORAGE_KEY = "labtrack_original_v3";
 const THEME_KEY = "labtrack_theme_v3";
 
+const SUBJECT_OPTIONS = [
+  "Chemistry",
+  "Physics",
+  "Biology",
+  "Earth and Space Science"
+];
 
 const INITIAL_ITEMS = [
 {
@@ -918,7 +924,11 @@ return items.map(item => `
      <div class="apparatus-symbol">${escapeHTML(item.symbol || "⚗")}</div>
      <span class="apparatus-id">${escapeHTML(item.id)}</span>
      <h3>${escapeHTML(item.name)}</h3>
-     <p>${escapeHTML(item.category)}<br>Location: ${escapeHTML(item.location)}</p>
+     <p>
+  ${escapeHTML(item.category)}<br>
+  Subject: ${escapeHTML(getItemSubject(item))}<br>
+  Location: ${escapeHTML(item.location)}
+</p>
      ${stockBadge(item)}
      <div class="stock-count">
        ${item.available}
@@ -944,120 +954,150 @@ return items.map(item => `
 }
 
 
+
 function renderInventoryTable(showTitle = true) {
-return `
-   <section class="panel">
-     ${showTitle ? `
-       <div class="panel-header">
-         <div>
-           <h3>Inventory Overview</h3>
-           <p>Update apparatus quantities and laboratory availability.</p>
-         </div>
-       </div>
-     ` : ""}
+  return `
+    <section class="panel">
+      ${showTitle ? `
+        <div class="panel-header">
+          <div>
+            <h3>Inventory Overview</h3>
+            <p>Update apparatus quantities and laboratory availability.</p>
+          </div>
+        </div>
+      ` : ""}
 
-     <div class="table-wrap">
-       <table>
-         <thead>
-           <tr>
-             <th>Apparatus ID</th>
-             <th>Apparatus</th>
-<th>Subject</th>
-<th>Location</th>
-             <th>Total Units</th>
-             <th>Good</th>
-             <th>Needs Cleaning</th>
-             <th>Needs Repair</th>
-             <th>Damaged</th>
-             <th>Under Maintenance</th>
-             <th>Needs Inspection</th>
-             <th>Available</th>
-             <th>Enable Borrowing</th>
-             <th>Status</th>
-             <th>Action</th>
-           </tr>
-         </thead>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Apparatus ID</th>
+              <th>Apparatus</th>
+              <th>Subject</th>
+              <th>Location</th>
+              <th>Total Units</th>
+              <th>Good</th>
+              <th>Needs Cleaning</th>
+              <th>Needs Repair</th>
+              <th>Damaged</th>
+              <th>Under Maintenance</th>
+              <th>Needs Inspection</th>
+              <th>Available</th>
+              <th>Enable Borrowing</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
 
-         <tbody>
-           ${data.items.map(item => {
-             const counts = getConditionCounts(item);
+          <tbody>
+            ${data.items
+              .slice()
+              .sort((a, b) =>
+                (a.category || "Uncategorized").localeCompare(
+                  b.category || "Uncategorized"
+                ) ||
+                (a.name || "").localeCompare(b.name || "")
+              )
+              .map((item, index, items) => {
+                const counts = getConditionCounts(item);
+                const category = item.category || "Uncategorized";
 
-             return `
-               <tr>
-                 <td>${escapeHTML(item.id)}</td>
-                <td>${escapeHTML(item.name)}</td>
+                const isNewCategory =
+                  index === 0 ||
+                  (items[index - 1].category || "Uncategorized") !== category;
 
-<td>
-  <select
-    id="inventory-subject-${escapeHTML(item.id)}"
-    style="min-width:160px"
-  >
-    ${SUBJECT_CATEGORIES.map(subject => `
-      <option
-        value="${escapeHTML(subject)}"
-        ${getItemSubject(item) === subject ? "selected" : ""}
-      >
-        ${escapeHTML(subject)}
-      </option>
-    `).join("")}
-  </select>
-</td>
+                return `
+                  ${isNewCategory ? `
+                    <tr class="category-group-row">
+                      <td colspan="15">
+                        <strong>${escapeHTML(category)}</strong>
+                      </td>
+                    </tr>
+                  ` : ""}
 
-<td>${escapeHTML(item.location)}</td>
-                 <td>
-                   <input
-                     type="number"
-                     id="inventory-total-${escapeHTML(item.id)}"
-                     min="0"
-                     step="1"
-                     value="${item.total}"
-                     style="width:75px"
-                   >
-                 </td>
+                  <tr>
+                    <td>${escapeHTML(item.id)}</td>
 
-                 ${CONDITION_KEYS.map(key => `
-                   <td>
-                     <input
-                       type="number"
-                       id="condition-${key}-${escapeHTML(item.id)}"
-                       min="0"
-                       step="1"
-                       value="${counts[key]}"
-                       aria-label="${CONDITION_LABELS[key]} for ${escapeHTML(item.name)}"
-                       style="width:75px"
-                     >
-                   </td>
-                 `).join("")}
+                    <td>
+                      <strong>${escapeHTML(item.name)}</strong>
+                    </td>
 
-                 <td><strong>${item.available}</strong></td>
+                    <td>
+                      <select
+                        id="inventory-subject-${escapeHTML(item.id)}"
+                      >
+                        ${SUBJECT_CATEGORIES.map(subject => `
+                          <option
+                            value="${escapeHTML(subject)}"
+                            ${(item.subject || getItemSubject(item)) === subject
+                              ? "selected"
+                              : ""}
+                          >
+                            ${escapeHTML(subject)}
+                          </option>
+                        `).join("")}
+                      </select>
+                    </td>
 
-                 <td>
-                   <input
-                     type="checkbox"
-                     id="inventory-enabled-${escapeHTML(item.id)}"
-                     ${item.enabled !== false ? "checked" : ""}
-                     style="width:auto"
-                   >
-                 </td>
+                    <td>${escapeHTML(item.location || "—")}</td>
 
-                 <td>${stockBadge(item)}</td>
+                    <td>
+                      <input
+                        type="number"
+                        id="inventory-total-${escapeHTML(item.id)}"
+                        min="0"
+                        step="1"
+                        value="${item.total}"
+                        style="width:75px"
+                      >
+                    </td>
 
-                 <td>
-                   <button
-                     class="btn btn-primary btn-small"
-                     data-action="save-inventory-item"
-                     data-id="${escapeHTML(item.id)}"
-                   >Save</button>
-                 </td>
-               </tr>
-             `;
-           }).join("")}
-         </tbody>
-       </table>
-     </div>
-   </section>
- `;
+                    ${CONDITION_KEYS.map(key => `
+                      <td>
+                        <input
+                          type="number"
+                          id="condition-${key}-${escapeHTML(item.id)}"
+                          min="0"
+                          step="1"
+                          value="${counts[key]}"
+                          aria-label="${CONDITION_LABELS[key]} for ${escapeHTML(item.name)}"
+                          style="width:75px"
+                        >
+                      </td>
+                    `).join("")}
+
+                    <td>
+                      <strong>${item.available}</strong>
+                    </td>
+
+                    <td>
+                      <input
+                        type="checkbox"
+                        id="inventory-enabled-${escapeHTML(item.id)}"
+                        ${item.enabled !== false ? "checked" : ""}
+                        style="width:auto"
+                      >
+                    </td>
+
+                    <td>${stockBadge(item)}</td>
+
+                    <td>
+                      <button
+                        class="btn btn-primary btn-small"
+                        data-action="save-inventory-item"
+                        data-id="${escapeHTML(item.id)}"
+                      >Save</button>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
 }
+
 
 
 function renderInventoryPage() {
@@ -2401,7 +2441,7 @@ const enabledInput = document.getElementById(
   `inventory-subject-${id}`
 );
 
-if (!totalInput || !enabledInput) return;
+if (!totalInput || !enabledInput || !subjectInput) return;
 
 const newTotal = Number(totalInput.value);
 
